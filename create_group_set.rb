@@ -30,7 +30,3 @@ create_group_set_AL = HTTParty.post(
         name: "AL"
     }
 )
-
-puts "AL1 id #{create_group_set_AL1.parsed_response['id']}"
-puts "AL2 id #{create_group_set_AL2.parsed_response['id']}"
-puts "AL id #{create_group_set_AL.parsed_response['id']}"
