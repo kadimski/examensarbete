@@ -131,7 +131,7 @@ end
 
 arr_of_discussing_user_ids = get_discussing_users($al_group_id)
 
-#### Bedöm dom som har skrivit inlägg ####
+#### Grades students who have participated in the discussion ####
 
 def grade_users(arr_of_discussing_user_ids)
     list_assignments = HTTParty.get(
@@ -177,3 +177,5 @@ def grade_users(arr_of_discussing_user_ids)
 end
 
 grade_users(arr_of_discussing_user_ids)
+
+##########################################
