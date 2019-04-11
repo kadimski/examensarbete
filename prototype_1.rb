@@ -176,6 +176,6 @@ def grade_users(arr_of_discussing_user_ids)
     }
 end
 
-grade_users(arr_of_discussing_user_ids)
-
 ##########################################
+
+grade_users(arr_of_discussing_user_ids)
