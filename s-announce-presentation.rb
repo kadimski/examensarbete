@@ -47,6 +47,9 @@ disable :protection
 # the user takes the assessment
 enable :sessions
 
+# canvas course id
+$canvas_course_id = 5
+
 $eecs_meeting_rooms=[
 'csc_lv24_522 Fantum, Lindstedtsvägen 24',
 'csc_lv24_527 F0, Lindstedtsvägen 24',
@@ -623,6 +626,38 @@ res = n.start do |http|
   
 end
 
+def create_group(group_set_id, group_name)
+  @url = "http://#{$canvas_host}/api/v1/group_categories/#{group_set_id}/groups"
+  puts "@url is #{@url}"
+  @payload={'name': group_name
+          }
+  puts("@payload is #{@payload}")
+  @postResponse = HTTParty.post(@url,
+                              :body => @payload.to_json,
+                              :headers => $header )
+  puts(" POST to create a group has Response.code #{@postResponse.code} and postResponse is #{@postResponse}")
+
+end
+
+def get_group_set_id(group_set_name)
+  @url = "http://#{$canvas_host}/api/v1/courses/#{$canvas_course_id}/group_categories"
+  puts "@url is #{@url}"
+  
+  @getResponse = HTTParty.get(@url, :headers => $header)
+  puts(" GET to get group set id has Response.code #{@getResponse.code} and getResponse is #{@getResponse}")
+
+  group_set_data = @getResponse.parsed_response
+  group_set_id = nil 
+
+  group_set_data.each do |group_set_info|
+      if group_set_info["name"] == group_set_name
+          group_set_id = group_set_info["id"]  
+      end
+  end
+
+  return group_set_id
+end
+
 ##### start of routes
 
 post '/start' do
@@ -1116,8 +1151,18 @@ get "/prepareAnnouncementStep2" do
 
   puts("author(s) is/are: #{authors}")
 
-  $group_name_complete = $group_name_not_complete + authors.join(" ") 
-  puts $group_name_complete
+  # creation of group names
+  $group_name_complete = $group_name_not_complete + authors.join(" ")
+
+  # creation of groups
+  group_set_id_AL1 = get_group_set_id("Active listener group 1")
+  group_set_id_AL2 = get_group_set_id("Active listener group 2")
+  group_set_id_AL = get_group_set_id("Active listener group")
+  
+  create_group(group_set_id_AL1, $group_name_complete)
+  create_group(group_set_id_AL2, $group_name_complete)
+  create_group(group_set_id_AL, $group_name_complete)
+  
   # extract title, subtitle, abstracts and list of keywords
   # "attachments":[{"id":18,"uuid":"8hghdLuepnAjrxDd7dtFjU8KLjzqoFTtcSfuxQxw","folder_id":20,"display_name":"Fake_student_thesis-20190220.pdf","filename":"1550670816_107__Fake_student_thesis-20190220.pdf","workflow_state":"processed","content-type":"application/pdf","url":"http://canvas.docker/files/18/download?download_frd=1\u0026verifier=8hghdLuepnAjrxDd7dtFjU8KLjzqoFTtcSfuxQxw","size":265203,"created_at":"2019-02-20T13:53:35Z","updated_at":"2019-02-20T13:53:37Z","unlock_at":null,"locked":false,"hidden":false,"lock_at":null,"hidden_for_user":false,"thumbnail_url":null,"modified_at":"2019-02-20T13:53:35Z","mime_class":"pdf","media_entry_id":null,"locked_for_user":false,"preview_url":null}]
 
