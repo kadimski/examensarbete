@@ -629,14 +629,14 @@ end
 def create_group(group_set_id, group_name)
   @url = "http://#{$canvas_host}/api/v1/group_categories/#{group_set_id}/groups"
   puts "@url is #{@url}"
-  @payload={'name': group_name
-          }
+
+  @payload={'name': group_name}
   puts("@payload is #{@payload}")
+
   @postResponse = HTTParty.post(@url,
                               :body => @payload.to_json,
                               :headers => $header )
   puts(" POST to create a group has Response.code #{@postResponse.code} and postResponse is #{@postResponse}")
-
 end
 
 def get_group_set_id(group_set_name)
@@ -658,6 +658,60 @@ def get_group_set_id(group_set_name)
   return group_set_id
 end
 
+def get_group_id(group_set_id, group_name)
+  @url = "http://#{$canvas_host}/api/v1/group_categories/#{group_set_id}/groups"
+  puts "@url is #{@url}"
+
+  @getResponse = HTTParty.get(@url, :headers => $header)
+  puts(" GET to get group id has Response.code #{@getResponse.code} and getResponse is #{@getResponse}")
+
+  group_data = @getResponse.parsed_response
+  group_id = nil
+
+  group_data.each do |group_data_info|
+      if group_data_info["name"] == group_name
+          group_id = group_data_info["id"]  
+      end
+  end
+
+  return group_id
+end
+
+def move_users_to_group(group_id, arr_of_user_ids)
+  arr_of_user_ids.each { |id|
+    @url = "http://#{$canvas_host}/api/v1/groups/#{group_id}/memberships"
+    puts "@url is #{@url}"
+
+    @payload={'user_id': id}
+    puts("@payload is #{@payload}")
+
+    @postResponse = HTTParty.post(@url, :body => @payload.to_json, :headers => $header )
+    puts(" POST to create a group has Response.code #{@postResponse.code} and postResponse is #{@postResponse}")
+  }
+end
+
+def get_arr_of_user_ids(arr_of_user_names)
+  arr_of_user_ids = Array.new
+
+  arr_of_user_names.each { |name|
+    @url = "http://#{$canvas_host}/api/v1/courses/#{$canvas_course_id}/users"
+    puts "@url is #{@url}"
+
+    @payload={'search_term': name}
+    puts("@payload is #{@payload}")
+
+    @getResponse = HTTParty.get(@url, :body => @payload.to_json, :headers => $header)
+    puts(" GET to get user id has Response.code #{@getResponse.code} and getResponse is #{@getResponse}")
+
+    user_data = @getResponse.parsed_response
+    
+    user_data.each do |user_data_info|
+      arr_of_user_ids.push user_data_info["id"]
+    end
+  }
+
+  return arr_of_user_ids
+end
 ##### start of routes
 
 post '/start' do
@@ -1152,16 +1206,21 @@ get "/prepareAnnouncementStep2" do
   puts("author(s) is/are: #{authors}")
 
   # creation of group names
-  $group_name_complete = $group_name_not_complete + authors.join(" ")
+  group_name_complete = $group_name_not_complete + authors.join(" ")
 
   # creation of groups
   group_set_id_AL1 = get_group_set_id("Active listener group 1")
   group_set_id_AL2 = get_group_set_id("Active listener group 2")
   group_set_id_AL = get_group_set_id("Active listener group")
   
-  create_group(group_set_id_AL1, $group_name_complete)
-  create_group(group_set_id_AL2, $group_name_complete)
-  create_group(group_set_id_AL, $group_name_complete)
+  create_group(group_set_id_AL1, group_name_complete)
+  create_group(group_set_id_AL2, group_name_complete)
+  create_group(group_set_id_AL, group_name_complete)
+
+  group_id_AL = get_group_id(group_set_id_AL, group_name_complete)
+  arr_of_user_ids = get_arr_of_user_ids(authors)
+
+  move_users_to_group(group_id_AL, arr_of_user_ids)
   
   # extract title, subtitle, abstracts and list of keywords
   # "attachments":[{"id":18,"uuid":"8hghdLuepnAjrxDd7dtFjU8KLjzqoFTtcSfuxQxw","folder_id":20,"display_name":"Fake_student_thesis-20190220.pdf","filename":"1550670816_107__Fake_student_thesis-20190220.pdf","workflow_state":"processed","content-type":"application/pdf","url":"http://canvas.docker/files/18/download?download_frd=1\u0026verifier=8hghdLuepnAjrxDd7dtFjU8KLjzqoFTtcSfuxQxw","size":265203,"created_at":"2019-02-20T13:53:35Z","updated_at":"2019-02-20T13:53:37Z","unlock_at":null,"locked":false,"hidden":false,"lock_at":null,"hidden_for_user":false,"thumbnail_url":null,"modified_at":"2019-02-20T13:53:35Z","mime_class":"pdf","media_entry_id":null,"locked_for_user":false,"preview_url":null}]
