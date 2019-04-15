@@ -633,9 +633,7 @@ def create_group(group_set_id, group_name)
   @payload={'name': group_name}
   puts("@payload is #{@payload}")
 
-  @postResponse = HTTParty.post(@url,
-                              :body => @payload.to_json,
-                              :headers => $header )
+  @postResponse = HTTParty.post(@url, :body => @payload.to_json, :headers => $header )
   puts(" POST to create a group has Response.code #{@postResponse.code} and postResponse is #{@postResponse}")
 end
 
@@ -712,6 +710,7 @@ def get_arr_of_user_ids(arr_of_user_names)
 
   return arr_of_user_ids
 end
+
 ##### start of routes
 
 post '/start' do
