@@ -684,7 +684,7 @@ def move_users_to_group(group_id, arr_of_user_ids)
     puts("@payload is #{@payload}")
 
     @postResponse = HTTParty.post(@url, :body => @payload.to_json, :headers => $header )
-    puts(" POST to create a group has Response.code #{@postResponse.code} and postResponse is #{@postResponse}")
+    puts(" POST to move users to group has Response.code #{@postResponse.code} and postResponse is #{@postResponse}")
   }
 end
 
