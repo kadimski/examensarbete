@@ -36,7 +36,7 @@ def get_groups_in_group_set(group_set_id)
     return group_set_data
 end
 
-##################################
+##########################################
 
 #### Returns the group set id for a given group set ####
 def get_group_set_id(group_set_name)
@@ -58,7 +58,7 @@ def get_group_set_id(group_set_name)
     return group_set_id
 end
 
-##################################
+##########################################
 
 #### Returns the group id for a given group name in a group set ####
 def get_group_id(group_set_id, group_name)
@@ -80,7 +80,7 @@ def get_group_id(group_set_id, group_name)
     return group_id
 end
 
-##################################
+##########################################
 
 #### Returns an array of user ids from a given group ####
 def get_users_in_group(group_id)
@@ -100,7 +100,7 @@ def get_users_in_group(group_id)
     return arr_of_user_ids
 end
 
-##################################
+##########################################
 
 #### Move an array of users to a given group ####
 def move_users_to_group(group_id, arr_of_user_ids)
@@ -116,7 +116,7 @@ def move_users_to_group(group_id, arr_of_user_ids)
     }
 end
 
-##################################
+##########################################
 
 al1_id = get_group_set_id("Active listener group 1")
 al2_id = get_group_set_id("Active listener group 2")

@@ -36,9 +36,9 @@ def get_groups_in_group_set(group_set_id)
     return group_set_data
 end
 
-##################################
+##########################################
 
-##### Returns the group set id for a given group set #####
+#### Returns the group set id for a given group set ####
 def get_group_set_id(group_set_name)
     @url = "http://#{$canvas_host}/api/v1/courses/#{$canvas_course_id}/group_categories"
     puts "@url is #{@url}"
@@ -58,9 +58,9 @@ def get_group_set_id(group_set_name)
     return group_set_id
 end
 
-##################################
+##########################################
 
-##### Returns the group id for a given group name in a group set #####
+#### Returns the group id for a given group name in a group set ####
 def get_group_id(group_set_id, group_name)
     @url = "http://#{$canvas_host}/api/v1/group_categories/#{group_set_id}/groups"
     puts "@url is #{@url}"
@@ -80,7 +80,7 @@ def get_group_id(group_set_id, group_name)
     return group_id
 end
 
-##################################
+##########################################
 
 #### Returns an array of user ids from a given group ####
 def get_users_in_group(group_id)
@@ -100,7 +100,7 @@ def get_users_in_group(group_id)
     return arr_of_user_ids
 end
 
-###############################
+##########################################
 
 #### Returns an array of user ids who have participated in the discussion, assuming only one discussion in a group ####
 def get_discussing_users(group_id)
