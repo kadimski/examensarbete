@@ -20,7 +20,7 @@ puts "$header: #{$header}"
 $canvas_course_id = 5
 
 # canvas group name
-$group_name = "2019-04-23 08:00 Ellen FakeStudent"
+$group_name = "2019-04-21 08:00 Ellen FakeStudent"
 
 ##### Returns the group set id for a given group set #####
 def get_group_set_id(group_set_name)
@@ -134,8 +134,9 @@ end
 
 arr_of_discussing_user_ids = get_discussing_users($al_group_id)
 
-#### Grades students who have participated in the discussion ####
+#### Grades students who have participated in the discussion and fails those who have not ####
 def grade_users(arr_of_discussing_user_ids)
+    
     @url = "http://#{$canvas_host}/api/v1/courses/#{$canvas_course_id}/assignments"
     puts "@url is #{@url}"
 
@@ -154,9 +155,9 @@ def grade_users(arr_of_discussing_user_ids)
         end
     end
 
-    arr_of_discussing_user_ids.each { |id|
-        if $arr_of_user_ids_AL1.include?(id)
-            @url = "http://#{$canvas_host}/api/v1/courses/#{$canvas_course_id}/assignments/#{assignment_AL1_id}/submissions/#{id}"
+	$arr_of_user_ids_AL1.each { |id|
+		if arr_of_discussing_user_ids.include?(id)
+			@url = "http://#{$canvas_host}/api/v1/courses/#{$canvas_course_id}/assignments/#{assignment_AL1_id}/submissions/#{id}"
             puts "@url is #{@url}"
 
             @payload={'submission': {
@@ -166,8 +167,23 @@ def grade_users(arr_of_discussing_user_ids)
 
             @putResponse = HTTParty.put(@url, :body => @payload.to_json, :headers => $header )
             puts(" PUT to grade assignment for user has Response.code #{@putResponse.code} and postResponse is #{@putResponse}")
-        elsif $arr_of_user_ids_AL2.include?(id)
-            @url = "http://#{$canvas_host}/api/v1/courses/#{$canvas_course_id}/assignments/#{assignment_AL2_id}/submissions/#{id}"
+		else
+			@url = "http://#{$canvas_host}/api/v1/courses/#{$canvas_course_id}/assignments/#{assignment_AL1_id}/submissions/#{id}"
+            puts "@url is #{@url}"
+
+            @payload={'submission': {
+                                        'posted_grade': 'fail'}
+            }
+            puts("@payload is #{@payload}")
+
+            @putResponse = HTTParty.put(@url, :body => @payload.to_json, :headers => $header )
+            puts(" PUT to grade assignment for user has Response.code #{@putResponse.code} and postResponse is #{@putResponse}")
+		end
+	}
+	
+	$arr_of_user_ids_AL2.each { |id|
+		if arr_of_discussing_user_ids.include?(id)
+			@url = "http://#{$canvas_host}/api/v1/courses/#{$canvas_course_id}/assignments/#{assignment_AL2_id}/submissions/#{id}"
             puts "@url is #{@url}"
 
             @payload={'submission': {
@@ -177,62 +193,19 @@ def grade_users(arr_of_discussing_user_ids)
 
             @putResponse = HTTParty.put(@url, :body => @payload.to_json, :headers => $header )
             puts(" PUT to grade assignment for user has Response.code #{@putResponse.code} and postResponse is #{@putResponse}")
-        else
-            puts "Something went wrong"
-        end
-    }
-	
-	#arr_of_user_ids_AL1.each { |id|
-		#if arr_of_discussing_user_ids.include?(id)
-			#@url = "http://#{$canvas_host}/api/v1/courses/#{$canvas_course_id}/assignments/#{assignment_AL1_id}/submissions/#{id}"
-            #puts "@url is #{@url}"
+		else
+			@url = "http://#{$canvas_host}/api/v1/courses/#{$canvas_course_id}/assignments/#{assignment_AL2_id}/submissions/#{id}"
+            puts "@url is #{@url}"
 
-            #@payload={'submission': {
-            #                            'posted_grade': 'pass'}
-            #}
-            #puts("@payload is #{@payload}")
+            @payload={'submission': {
+                                        'posted_grade': 'fail'}
+            }
+            puts("@payload is #{@payload}")
 
-            #@putResponse = HTTParty.put(@url, :body => @payload.to_json, :headers => $header )
-            #puts(" PUT to grade assignment for user has Response.code #{@putResponse.code} and postResponse is #{@putResponse}")
-		#else
-			#@url = "http://#{$canvas_host}/api/v1/courses/#{$canvas_course_id}/assignments/#{assignment_AL1_id}/submissions/#{id}"
-            #puts "@url is #{@url}"
-
-            #@payload={'submission': {
-            #                            'posted_grade': 'fail'}
-            #}
-            #puts("@payload is #{@payload}")
-
-            #@putResponse = HTTParty.put(@url, :body => @payload.to_json, :headers => $header )
-            #puts(" PUT to grade assignment for user has Response.code #{@putResponse.code} and postResponse is #{@putResponse}")
-		#end
-	#}
-	
-	#arr_of_user_ids_AL2.each { |id|
-		#if arr_of_discussing_user_ids.include?(id)
-			#@url = "http://#{$canvas_host}/api/v1/courses/#{$canvas_course_id}/assignments/#{assignment_AL2_id}/submissions/#{id}"
-            #puts "@url is #{@url}"
-
-            #@payload={'submission': {
-            #                            'posted_grade': 'pass'}
-            #}
-            #puts("@payload is #{@payload}")
-
-            #@putResponse = HTTParty.put(@url, :body => @payload.to_json, :headers => $header )
-            #puts(" PUT to grade assignment for user has Response.code #{@putResponse.code} and postResponse is #{@putResponse}")
-		#else
-			#@url = "http://#{$canvas_host}/api/v1/courses/#{$canvas_course_id}/assignments/#{assignment_AL2_id}/submissions/#{id}"
-            #puts "@url is #{@url}"
-
-            #@payload={'submission': {
-            #                            'posted_grade': 'fail'}
-            #}
-            #puts("@payload is #{@payload}")
-
-            #@putResponse = HTTParty.put(@url, :body => @payload.to_json, :headers => $header )
-            #puts(" PUT to grade assignment for user has Response.code #{@putResponse.code} and postResponse is #{@putResponse}")
-		#end
-	#}
+            @putResponse = HTTParty.put(@url, :body => @payload.to_json, :headers => $header )
+            puts(" PUT to grade assignment for user has Response.code #{@putResponse.code} and postResponse is #{@putResponse}")
+		end
+	}
 end
 
 ##########################################
