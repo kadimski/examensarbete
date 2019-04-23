@@ -1,5 +1,6 @@
 require 'httparty'
 require 'json'
+require 'date'
 
 config = JSON.parse(File.read('config.json'))
 #puts "config: #{config}"
@@ -19,10 +20,25 @@ puts "$header: #{$header}"
 # canvas course id
 $canvas_course_id = 5
 
-# canvas group name
-$group_name = "2019-04-23 08:00 Ellen FakeStudent"
+# today's date
+$todays_date = Date.today.to_s
 
-##### Returns the group set id for a given group set #####
+#### Returns groups in a group set as a parsed response ####
+def get_groups_in_group_set(group_set_id)
+    @url = "http://#{$canvas_host}/api/v1/group_categories/#{group_set_id}/groups"
+    puts "@url is #{@url}"
+    
+    @getResponse = HTTParty.get(@url, :headers => $header)
+    puts(" GET to get groups in group set has Response.code #{@getResponse.code} and getResponse is #{@getResponse}")
+  
+    group_set_data = @getResponse.parsed_response
+  
+    return group_set_data
+end
+
+##################################
+
+#### Returns the group set id for a given group set ####
 def get_group_set_id(group_set_name)
     @url = "http://#{$canvas_host}/api/v1/courses/#{$canvas_course_id}/group_categories"
     puts "@url is #{@url}"
@@ -44,11 +60,7 @@ end
 
 ##################################
 
-$al1_id = get_group_set_id("Active listener group 1")
-$al2_id = get_group_set_id("Active listener group 2")
-$al_id = get_group_set_id("Active listener group")
-
-##### Returns the group id for a given group name in a group set #####
+#### Returns the group id for a given group name in a group set ####
 def get_group_id(group_set_id, group_name)
     @url = "http://#{$canvas_host}/api/v1/group_categories/#{group_set_id}/groups"
     puts "@url is #{@url}"
@@ -70,10 +82,6 @@ end
 
 ##################################
 
-$al1_group_id = get_group_id($al1_id, $group_name)
-$al2_group_id = get_group_id($al2_id, $group_name)
-$al_group_id = get_group_id($al_id, $group_name)
-
 #### Returns an array of user ids from a given group ####
 def get_users_in_group(group_id)
     @url = "http://#{$canvas_host}/api/v1/groups/#{group_id}/users"
@@ -92,12 +100,7 @@ def get_users_in_group(group_id)
     return arr_of_user_ids
 end
 
-###############################
-
-$arr_of_user_ids_AL1 = get_users_in_group($al1_group_id)
-$arr_of_user_ids_AL2 = get_users_in_group($al2_group_id)
-
-$arr_of_user_ids = $arr_of_user_ids_AL1 + $arr_of_user_ids_AL2
+##################################
 
 #### Move an array of users to a given group ####
 def move_users_to_group(group_id, arr_of_user_ids)
@@ -113,6 +116,26 @@ def move_users_to_group(group_id, arr_of_user_ids)
     }
 end
 
-###############################
+##################################
 
-move_users_to_group($al_group_id, $arr_of_user_ids)
+al1_id = get_group_set_id("Active listener group 1")
+al2_id = get_group_set_id("Active listener group 2")
+al_id = get_group_set_id("Active listener group")
+
+groups = get_groups_in_group_set(al_id)
+
+groups.each do |group_info|
+    group_date = group_info["name"].split(" ").first
+    if $todays_date == group_date && group_info["members_count"] <= 2
+        al1_group_id = get_group_id(al1_id, group_info["name"])
+        al2_group_id = get_group_id(al2_id, group_info["name"])
+        al_group_id = get_group_id(al_id, group_info["name"])
+
+        arr_of_user_ids_AL1 = get_users_in_group(al1_group_id)
+        arr_of_user_ids_AL2 = get_users_in_group(al2_group_id)
+
+        arr_of_user_ids = arr_of_user_ids_AL1 + arr_of_user_ids_AL2
+
+        move_users_to_group(al_group_id, arr_of_user_ids)
+    end
+end
