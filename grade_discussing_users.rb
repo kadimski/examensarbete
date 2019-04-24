@@ -2,7 +2,7 @@ require 'httparty'
 require 'json'
 require 'date'
 
-config = JSON.parse(File.read('config.json'))
+config = JSON.parse(File.read('/home/maguire/utils/config.json'))
 #puts "config: #{config}"
 
 access_token = config['canvas']['access_token']
