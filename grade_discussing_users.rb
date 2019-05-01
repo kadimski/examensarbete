@@ -149,9 +149,9 @@ def grade_users(arr_of_discussing_user_ids, arr_of_user_ids_AL1, arr_of_user_ids
     assignment_AL2_id = nil
 
     assignments_data.each do |assignments_info|
-        if assignments_info["name"] == "AL1"
+        if assignments_info["name"] == "1: aktiv lyssnare / active listener"
             assignment_AL1_id = assignments_info["id"]
-        elsif assignments_info["name"] == "AL2"
+        elsif assignments_info["name"] == "2: aktiv lyssnare / active listener"
             assignment_AL2_id = assignments_info["id"]
         end
     end
