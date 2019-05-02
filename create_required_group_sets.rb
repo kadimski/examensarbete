@@ -25,14 +25,13 @@ def create_group_set(name, self_signup)
 
     if self_signup == true
         @payload={'name': name, 
-            'self_signup': 'true'}
+            'self_signup': 'enabled'}
         puts("@payload is #{@payload}")
 
         @postResponse = HTTParty.post(@url, :body => @payload.to_json, :headers => $header )
         puts(" POST to create group set has Response.code #{@postResponse.code} and postResponse is #{@postResponse}")  
     else   
-        @payload={'name': name, 
-            'self_signup': 'false'}
+        @payload={'name': name}
         puts("@payload is #{@payload}")
 
         @postResponse = HTTParty.post(@url, :body => @payload.to_json, :headers => $header )
@@ -42,4 +41,4 @@ end
 
 create_group_set("AL", false)
 create_group_set("AL1", true)
-create_group_set("AL2" true)
+create_group_set("AL2", true)
