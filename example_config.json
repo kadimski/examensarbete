@@ -1,7 +1,6 @@
 {
     "canvas":{
-        "access_token": "TOKEN HERE",
-	"host": "HOST NAME HERE"
+        "access_token": "CANVAS TOKEN HERE",
+	    "host": "CANVAS HOST NAME HERE"
     }
-    
 }
