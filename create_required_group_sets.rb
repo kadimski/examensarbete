@@ -20,7 +20,7 @@ puts "$header: #{$header}"
 $canvas_course_id = 4
 
 def create_group_set(name, self_signup)
-    @url = "#{$canvas_host}/api/v1/courses/#{$canvas_course_id}/group_categories"
+    @url = "http://#{$canvas_host}/api/v1/courses/#{$canvas_course_id}/group_categories"
     puts "@url is #{@url}"
 
     if self_signup == true
@@ -39,6 +39,6 @@ def create_group_set(name, self_signup)
     end
 end 
 
-create_group_set("AL", false)
-create_group_set("AL1", true)
-create_group_set("AL2", true)
+create_group_set("Active listener group 1", true)
+create_group_set("Active listener group 2", true)
+create_group_set("Active listener group", false)
