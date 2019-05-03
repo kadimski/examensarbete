@@ -1,6 +1,7 @@
 require 'httparty'
 require 'json'
 require 'date'
+require 'nitlink'
 
 config = JSON.parse(File.read('/home/maguire/utils/config.json'))
 #puts "config: #{config}"
@@ -23,15 +24,30 @@ $canvas_course_id = 5
 # today's date
 $todays_date = Date.today.to_s
 
-#### Returns groups in a group set as a parsed response ####
+# link parser for paginated get requests
+$link_parser = Nitlink::Parser.new
+
+#### Returns groups in a group set as a an array of parsed responses ####
 def get_groups_in_group_set(group_set_id)
-    @url = "http://#{$canvas_host}/api/v1/group_categories/#{group_set_id}/groups"
+    group_set_data = Array.new
+    next_link_header = true
+
+    @url = "http://#{$canvas_host}/api/v1/group_categories/#{group_set_id}/groups?per_page=1"
     puts "@url is #{@url}"
-    
+        
     @getResponse = HTTParty.get(@url, :headers => $header)
     puts(" GET to get groups in group set has Response.code #{@getResponse.code} and getResponse is #{@getResponse}")
-  
-    group_set_data = @getResponse.parsed_response
+    group_set_data.append(@getResponse.parsed_response)
+
+    while $link_parser.parse(@getResponse).by_rel('next')
+        @url = $link_parser.parse(@getResponse).by_rel('next').target
+        puts "@url is #{@url}"
+
+        @getResponse = HTTParty.get(@url, :headers => $header)
+        puts(" GET to get groups in group set has Response.code #{@getResponse.code} and getResponse is #{@getResponse}")
+            
+        group_set_data.append(@getResponse.parsed_response)
+    end
   
     return group_set_data
 end
@@ -124,18 +140,20 @@ al_id = get_group_set_id("Active listener group")
 
 groups = get_groups_in_group_set(al_id)
 
-groups.each do |group_info|
-    group_date = group_info["name"].split(" ").first
-    if $todays_date == group_date && group_info["members_count"] <= 2
-        al1_group_id = get_group_id(al1_id, group_info["name"])
-        al2_group_id = get_group_id(al2_id, group_info["name"])
-        al_group_id = get_group_id(al_id, group_info["name"])
+groups.each { |group_info|
+    group_info.each do |group|
+        group_date = group["name"].split(" ").first
+        if $todays_date == group_date && group["members_count"] <= 2
+            al1_group_id = get_group_id(al1_id, group["name"])
+            al2_group_id = get_group_id(al2_id, group["name"])
+            al_group_id = get_group_id(al_id, group["name"])
 
-        arr_of_user_ids_AL1 = get_users_in_group(al1_group_id)
-        arr_of_user_ids_AL2 = get_users_in_group(al2_group_id)
+            arr_of_user_ids_AL1 = get_users_in_group(al1_group_id)
+            arr_of_user_ids_AL2 = get_users_in_group(al2_group_id)
 
-        arr_of_user_ids = arr_of_user_ids_AL1 + arr_of_user_ids_AL2
+            arr_of_user_ids = arr_of_user_ids_AL1 + arr_of_user_ids_AL2
 
-        move_users_to_group(al_group_id, arr_of_user_ids)
+            move_users_to_group(al_group_id, arr_of_user_ids)
+        end
     end
-end
+}
