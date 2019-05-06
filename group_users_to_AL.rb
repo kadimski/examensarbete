@@ -181,6 +181,57 @@ end
 
 ##########################################
 
+#### Returns an array of user ids ####
+def get_arr_of_user_ids(arr_of_user_names)
+    arr_of_user_ids = Array.new
+
+    arr_of_user_names.each { |name|
+      @url = "http://#{$canvas_host}/api/v1/courses/#{$canvas_course_id}/users"
+      puts "@url is #{@url}"
+  
+      @payload={'search_term': name}
+      puts("@payload is #{@payload}")
+  
+      @getResponse = HTTParty.get(@url, :body => @payload.to_json, :headers => $header)
+      puts(" GET to get user has Response.code #{@getResponse.code} and getResponse is #{@getResponse}")
+  
+      user_data = @getResponse.parsed_response
+      
+      user_data.each do |user_data_info|
+        arr_of_user_ids.push user_data_info["id"]
+      end
+    }
+  
+    return arr_of_user_ids
+end
+
+##########################################
+
+#### Returns a user id ####
+def get_user_id(full_user_name)
+    @url = "http://#{$canvas_host}/api/v1/courses/#{$canvas_course_id}/users"
+    puts "@url is #{@url}"
+  
+    @payload={'search_term': full_user_name}
+    puts("@payload is #{@payload}")
+  
+    @getResponse = HTTParty.get(@url, :body => @payload.to_json, :headers => $header)
+    puts(" GET to get user has Response.code #{@getResponse.code} and getResponse is #{@getResponse}")
+  
+    user_data = @getResponse.parsed_response
+    user_id = nil
+
+    user_data.each do |user_info|
+        if user_info["name"] == full_user_name
+            user_id = user_info["id"]
+        end
+    end
+
+    return user_id
+end
+
+##########################################
+
 al1_id = get_group_set_id("Active listener group 1")
 al2_id = get_group_set_id("Active listener group 2")
 al_id = get_group_set_id("Active listener group")
@@ -189,16 +240,39 @@ groups = get_groups_in_group_set(al_id)
 
 groups.each { |group_info|
     group_info.each do |group|
-        group_date = group["name"].split(" ").first
+        group_name = group["name"].split(" | ")
+        group_date = nil
+        group_time = nil
+        author1 = nil
+        author2 = nil
+
+        if group_name.length == 3
+            group_date = group_name[0]
+            group_time = group_name[1]
+            author1 = group_name[2]
+        else
+            group_date = group_name[0]
+            group_time = group_name[1]
+            author1 = group_name[2]
+            author2 = group_name[3]
+        end
+
         if $todays_date == group_date && group["members_count"] == 0
             al1_group_id = get_group_id(al1_id, group["name"])
             al2_group_id = get_group_id(al2_id, group["name"])
             al_group_id = get_group_id(al_id, group["name"])
-            puts al1_group_id
+            
             arr_of_user_ids_AL1 = get_users_in_group(al1_group_id)
             arr_of_user_ids_AL2 = get_users_in_group(al2_group_id)
 
             arr_of_user_ids = arr_of_user_ids_AL1 + arr_of_user_ids_AL2
+            
+            if author2 == nil
+                arr_of_user_ids.append(get_user_id(author1))
+            else
+                arr_of_user_ids.append(get_user_id(author1)) 
+                arr_of_user_ids.append(get_user_id(author2))
+            end
 
             move_users_to_group(al_group_id, arr_of_user_ids)
         end
