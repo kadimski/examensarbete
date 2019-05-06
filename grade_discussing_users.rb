@@ -23,15 +23,26 @@ $canvas_course_id = 5
 # today's date
 $todays_date = Date.today.to_s
 
-#### Returns groups in a group set as a parsed response ####
+#### Returns groups in a group set as a an array of parsed responses ####
 def get_groups_in_group_set(group_set_id)
-    @url = "http://#{$canvas_host}/api/v1/group_categories/#{group_set_id}/groups"
+    group_set_data = Array.new
+
+    @url = "http://#{$canvas_host}/api/v1/group_categories/#{group_set_id}/groups?per_page=1"
     puts "@url is #{@url}"
-    
+        
     @getResponse = HTTParty.get(@url, :headers => $header)
     puts(" GET to get groups in group set has Response.code #{@getResponse.code} and getResponse is #{@getResponse}")
-  
-    group_set_data = @getResponse.parsed_response
+    group_set_data.append(@getResponse.parsed_response)
+
+    while $link_parser.parse(@getResponse).by_rel('next')
+        @url = $link_parser.parse(@getResponse).by_rel('next').target
+        puts "@url is #{@url}"
+
+        @getResponse = HTTParty.get(@url, :headers => $header)
+        puts(" GET to get groups in group set has Response.code #{@getResponse.code} and getResponse is #{@getResponse}")
+            
+        group_set_data.append(@getResponse.parsed_response)
+    end
   
     return group_set_data
 end
@@ -40,44 +51,92 @@ end
 
 #### Returns the group set id for a given group set ####
 def get_group_set_id(group_set_name)
+    group_set_arr = Array.new
+
     @url = "http://#{$canvas_host}/api/v1/courses/#{$canvas_course_id}/group_categories"
     puts "@url is #{@url}"
     
     @getResponse = HTTParty.get(@url, :headers => $header)
-    puts(" GET to get group set id has Response.code #{@getResponse.code} and getResponse is #{@getResponse}")
-  
-    group_set_data = @getResponse.parsed_response
-    group_set_id = nil 
-  
-    group_set_data.each do |group_set_info|
-        if group_set_info["name"] == group_set_name
-            group_set_id = group_set_info["id"]  
+    puts(" GET to get group sets has Response.code #{@getResponse.code} and getResponse is #{@getResponse}")
+    
+    if $link_parser.parse(@getResponse).by_rel('next')
+        group_set_arr.append(@getResponse.parsed_response)
+
+        while $link_parser.parse(@getResponse).by_rel('next')
+            @url = $link_parser.parse(@getResponse).by_rel('next').target
+            puts "@url is #{@url}"
+
+            @getResponse = HTTParty.get(@url, :headers => $header)
+            puts(" GET to get group sets has Response.code #{@getResponse.code} and getResponse is #{@getResponse}")
+            
+            group_set_arr.append(@getResponse.parsed_response)
         end
+
+        group_set_arr.each { |group_set_data|
+            group_set_data.each do |group_set_info|
+                if group_set_info["name"] == group_name
+                    return group_set_id = group_set_info["id"]  
+                end
+            end
+        }
+    else
+        group_set_data = @getResponse.parsed_response
+        group_set_id = nil 
+    
+        group_set_data.each do |group_set_info|
+            if group_set_info["name"] == group_set_name
+                group_set_id = group_set_info["id"]  
+            end
+        end
+    
+        return group_set_id
     end
-  
-    return group_set_id
 end
 
 ##########################################
 
 #### Returns the group id for a given group name in a group set ####
 def get_group_id(group_set_id, group_name)
-    @url = "http://#{$canvas_host}/api/v1/group_categories/#{group_set_id}/groups"
+    group_data_arr = Array.new
+
+    @url = "http://#{$canvas_host}/api/v1/group_categories/#{group_set_id}/groups?per_page=1"
     puts "@url is #{@url}"
   
     @getResponse = HTTParty.get(@url, :headers => $header)
-    puts(" GET to get group id has Response.code #{@getResponse.code} and getResponse is #{@getResponse}")
-  
-    group_data = @getResponse.parsed_response
-    group_id = nil
-  
-    group_data.each do |group_data_info|
-        if group_data_info["name"] == group_name
-            group_id = group_data_info["id"]  
+    puts(" GET to get groups in a group set has Response.code #{@getResponse.code} and getResponse is #{@getResponse}")
+    
+    if $link_parser.parse(@getResponse).by_rel('next')
+        group_data_arr.append(@getResponse.parsed_response)
+
+        while $link_parser.parse(@getResponse).by_rel('next')
+            @url = $link_parser.parse(@getResponse).by_rel('next').target
+            puts "@url is #{@url}"
+
+            @getResponse = HTTParty.get(@url, :headers => $header)
+            puts(" GET to get groups in a group set has Response.code #{@getResponse.code} and getResponse is #{@getResponse}")
+            
+            group_data_arr.append(@getResponse.parsed_response)
         end
+
+        group_data_arr.each { |group_data|
+            group_data.each do |group_data_info|
+                if group_data_info["name"] == group_name
+                    return group_id = group_data_info["id"]  
+                end
+            end
+        }
+    else
+        group_data = @getResponse.parsed_response
+        group_id = nil
+    
+        group_data.each do |group_data_info|
+            if group_data_info["name"] == group_name
+                group_id = group_data_info["id"]  
+            end
+        end
+
+        return group_id
     end
-  
-    return group_id
 end
 
 ##########################################

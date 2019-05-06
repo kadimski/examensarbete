@@ -642,7 +642,7 @@ def get_group_set_id(group_set_name)
   puts "@url is #{@url}"
   
   @getResponse = HTTParty.get(@url, :headers => $header)
-  puts(" GET to get group set id has Response.code #{@getResponse.code} and getResponse is #{@getResponse}")
+  puts(" GET to get group sets has Response.code #{@getResponse.code} and getResponse is #{@getResponse}")
 
   group_set_data = @getResponse.parsed_response
   group_set_id = nil 
@@ -661,7 +661,7 @@ def get_group_id(group_set_id, group_name)
   puts "@url is #{@url}"
 
   @getResponse = HTTParty.get(@url, :headers => $header)
-  puts(" GET to get group id has Response.code #{@getResponse.code} and getResponse is #{@getResponse}")
+  puts(" GET to get groups has Response.code #{@getResponse.code} and getResponse is #{@getResponse}")
 
   group_data = @getResponse.parsed_response
   group_id = nil
@@ -699,7 +699,7 @@ def get_arr_of_user_ids(arr_of_user_names)
     puts("@payload is #{@payload}")
 
     @getResponse = HTTParty.get(@url, :body => @payload.to_json, :headers => $header)
-    puts(" GET to get user id has Response.code #{@getResponse.code} and getResponse is #{@getResponse}")
+    puts(" GET to get user has Response.code #{@getResponse.code} and getResponse is #{@getResponse}")
 
     user_data = @getResponse.parsed_response
     
@@ -1209,7 +1209,7 @@ get "/prepareAnnouncementStep2" do
   @getResponse=HTTParty.get(@url_to_use, :headers => $header )
   author_info=@getResponse.parsed_response
   puts("author_info is #{author_info}")
-  authors=[]
+  authors=["Quentin FakeStudent"]
   authors << author_info['name']
   session['authors']=authors
 
@@ -1219,7 +1219,7 @@ get "/prepareAnnouncementStep2" do
   puts("author(s) is/are: #{authors}")
 
   # creation of group names
-  group_name_complete = $group_name_not_complete + authors.join(" ")
+  group_name_complete = $group_name_not_complete + authors.join("|")
 
   # creation of groups
   group_set_id_AL1 = get_group_set_id("Active listener group 1")
@@ -1232,10 +1232,10 @@ get "/prepareAnnouncementStep2" do
 
   # move author(s) to group in AL
   group_id_AL = get_group_id(group_set_id_AL, group_name_complete)
-  arr_of_user_ids = get_arr_of_user_ids(authors)
+  #arr_of_user_ids = get_arr_of_user_ids(authors)
 
   create_discussion_topic(group_id_AL)
-  move_users_to_group(group_id_AL, arr_of_user_ids)
+  #move_users_to_group(group_id_AL, arr_of_user_ids)
 
   # extract title, subtitle, abstracts and list of keywords
   # "attachments":[{"id":18,"uuid":"8hghdLuepnAjrxDd7dtFjU8KLjzqoFTtcSfuxQxw","folder_id":20,"display_name":"Fake_student_thesis-20190220.pdf","filename":"1550670816_107__Fake_student_thesis-20190220.pdf","workflow_state":"processed","content-type":"application/pdf","url":"http://canvas.docker/files/18/download?download_frd=1\u0026verifier=8hghdLuepnAjrxDd7dtFjU8KLjzqoFTtcSfuxQxw","size":265203,"created_at":"2019-02-20T13:53:35Z","updated_at":"2019-02-20T13:53:37Z","unlock_at":null,"locked":false,"hidden":false,"lock_at":null,"hidden_for_user":false,"thumbnail_url":null,"modified_at":"2019-02-20T13:53:35Z","mime_class":"pdf","media_entry_id":null,"locked_for_user":false,"preview_url":null}]
