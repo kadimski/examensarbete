@@ -1,6 +1,8 @@
 require 'httparty'
 require 'json'
+require 'time'
 require 'date'
+require 'nitlink'
 
 config = JSON.parse(File.read('/home/maguire/utils/config.json'))
 #puts "config: #{config}"
@@ -20,8 +22,15 @@ puts "$header: #{$header}"
 # canvas course id
 $canvas_course_id = 5
 
-# today's date
+# today's date and time
 $todays_date = Date.today.to_s
+$time = Time.new.strftime("%k:%M")
+time_in_thirty_minutes = Time.now + 60*30
+# ugly solution
+$time_in_thirty_minutes = time_in_thirty_minutes.strftime("%k:%M")
+
+# link parser for paginated get requests
+$link_parser = Nitlink::Parser.new
 
 #### Returns groups in a group set as a an array of parsed responses ####
 def get_groups_in_group_set(group_set_id)
@@ -277,7 +286,10 @@ al_id = get_group_set_id("Active listener group")
 groups = get_groups_in_group_set(al_id)
 
 groups.each do |group_info|
-    group_date = group_info["name"].split(" ").first
+    splitted_group_name = group["name"].split(" | ")
+    group_date = splitted_group_name[0]
+    group_time = splitted_group_name[1]
+
     if $todays_date == group_date
         al1_group_id = get_group_id(al1_id, group_info["name"])
         al2_group_id = get_group_id(al2_id, group_info["name"])
