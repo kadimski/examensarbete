@@ -1,5 +1,6 @@
 require 'httparty'
 require 'json'
+require 'time'
 require 'date'
 require 'nitlink'
 
@@ -21,9 +22,13 @@ puts "$header: #{$header}"
 # canvas course id
 $canvas_course_id = 5
 
-# today's date
+# today's date and time
 $todays_date = Date.today.to_s
-
+$time = Time.new.strftime("%k:%M")
+time_in_thirty_minutes = Time.now + 60*30
+# ugly solution
+$time_in_thirty_minutes = time_in_thirty_minutes.strftime("%k:%M")
+ 
 # link parser for paginated get requests
 $link_parser = Nitlink::Parser.new
 
@@ -78,7 +83,7 @@ def get_group_set_id(group_set_name)
 
         group_set_arr.each { |group_set_data|
             group_set_data.each do |group_set_info|
-                if group_set_info["name"] == group_name
+                if group_set_info["name"] == splitted_group_name
                     return group_set_id = group_set_info["id"]  
                 end
             end
@@ -100,7 +105,7 @@ end
 ##########################################
 
 #### Returns the group id for a given group name in a group set ####
-def get_group_id(group_set_id, group_name)
+def get_group_id(group_set_id, splitted_group_name)
     group_data_arr = Array.new
 
     @url = "http://#{$canvas_host}/api/v1/group_categories/#{group_set_id}/groups?per_page=1"
@@ -124,7 +129,7 @@ def get_group_id(group_set_id, group_name)
 
         group_data_arr.each { |group_data|
             group_data.each do |group_data_info|
-                if group_data_info["name"] == group_name
+                if group_data_info["name"] == splitted_group_name
                     return group_id = group_data_info["id"]  
                 end
             end
@@ -134,7 +139,7 @@ def get_group_id(group_set_id, group_name)
         group_id = nil
     
         group_data.each do |group_data_info|
-            if group_data_info["name"] == group_name
+            if group_data_info["name"] == splitted_group_name
                 group_id = group_data_info["id"]  
             end
         end
@@ -240,24 +245,25 @@ groups = get_groups_in_group_set(al_id)
 
 groups.each { |group_info|
     group_info.each do |group|
-        group_name = group["name"].split(" | ")
+        splitted_group_name = group["name"].split(" | ")
         group_date = nil
         group_time = nil
         author1 = nil
         author2 = nil
 
-        if group_name.length == 3
-            group_date = group_name[0]
-            group_time = group_name[1]
-            author1 = group_name[2]
+        if splitted_group_name.length == 3
+            group_date = splitted_group_name[0]
+            group_time_string = splitted_group_name[1]
+            author1 = splitted_group_name[2]
         else
-            group_date = group_name[0]
-            group_time = group_name[1]
-            author1 = group_name[2]
-            author2 = group_name[3]
+            group_date = splitted_group_name[0]
+            group_time_string = splitted_group_name[1]
+            author1 = splitted_group_name[2]
+            author2 = splitted_group_name[3]
         end
-
-        if $todays_date == group_date && group["members_count"] == 0
+        group_time = Time.parse(group_time_string).strftime("%k:%M")
+        p group_time, group_time.between?($time, $time_in_thirty_minutes), $todays_date == group_date
+        if $todays_date == group_date && group_time.between?($time, $time_in_thirty_minutes) && group["members_count"] == 0
             al1_group_id = get_group_id(al1_id, group["name"])
             al2_group_id = get_group_id(al2_id, group["name"])
             al_group_id = get_group_id(al_id, group["name"])
