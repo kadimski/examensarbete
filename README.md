@@ -17,7 +17,7 @@ This script grades each participant in a discussion within a group with the grad
 
 <h3>group_users_to_AL.rb</h3>
 
-This script groups users from two different group sets to a single one. This scripts is thought to be used in a cron job.
+This script groups users from two different group sets to a single one. This script is thought to be used in a cron job.
 
 <h3>prototype_1.rb</h3>
 
