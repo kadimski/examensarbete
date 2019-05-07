@@ -25,9 +25,9 @@ $canvas_course_id = 5
 # today's date and time
 $todays_date = Date.today.to_s
 $time = Time.new.strftime("%k:%M")
-time_in_thirty_minutes = Time.now + 60*30
+time_thirty_minutes_ago = Time.now - 60*30
 # ugly solution
-$time_in_thirty_minutes = time_in_thirty_minutes.strftime("%k:%M")
+$time_thirty_minutes_ago = time_thirty_minutes_ago.strftime("%k:%M")
 
 # link parser for paginated get requests
 $link_parser = Nitlink::Parser.new
@@ -285,23 +285,26 @@ al_id = get_group_set_id("Active listener group")
 
 groups = get_groups_in_group_set(al_id)
 
-groups.each do |group_info|
-    splitted_group_name = group["name"].split(" | ")
-    group_date = splitted_group_name[0]
-    group_time = splitted_group_name[1]
+groups.each { |group_info|
+    group_info.each do |group|
+        splitted_group_name = group["name"].split(" | ")
+        group_date = splitted_group_name[0]
+        group_time_string = splitted_group_name[1]
+        group_time = Time.parse(group_time_string).strftime("%k:%M")
 
-    if $todays_date == group_date
-        al1_group_id = get_group_id(al1_id, group_info["name"])
-        al2_group_id = get_group_id(al2_id, group_info["name"])
-        al_group_id = get_group_id(al_id, group_info["name"])
+        if $todays_date == group_date && group_time.between?($time_thirty_minutes_ago, $time)
+            al1_group_id = get_group_id(al1_id, group["name"])
+            al2_group_id = get_group_id(al2_id, group["name"])
+            al_group_id = get_group_id(al_id, group["name"])
 
-        arr_of_user_ids_AL1 = get_users_in_group(al1_group_id)
-        arr_of_user_ids_AL2 = get_users_in_group(al2_group_id)
+            arr_of_user_ids_AL1 = get_users_in_group(al1_group_id)
+            arr_of_user_ids_AL2 = get_users_in_group(al2_group_id)
 
-        arr_of_user_ids = arr_of_user_ids_AL1 + arr_of_user_ids_AL2
+            arr_of_user_ids = arr_of_user_ids_AL1 + arr_of_user_ids_AL2
 
-        arr_of_discussing_user_ids = get_discussing_users(al_group_id)
+            arr_of_discussing_user_ids = get_discussing_users(al_group_id)
 
-        grade_users(arr_of_discussing_user_ids, arr_of_user_ids_AL1, arr_of_user_ids_AL2)
+            grade_users(arr_of_discussing_user_ids, arr_of_user_ids_AL1, arr_of_user_ids_AL2)
+        end
     end
-end
+}
