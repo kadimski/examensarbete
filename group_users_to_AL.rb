@@ -263,7 +263,7 @@ groups.each { |group_info|
         end
         group_time = Time.parse(group_time_string).strftime("%k:%M")
         
-        if $todays_date == group_date && group_time.between?($time, $time_in_thirty_minutes) && group["members_count"] == 0
+        if $todays_date == group_date && group_time.between?($time, $time_in_thirty_minutes)
             al1_group_id = get_group_id(al1_id, group["name"])
             al2_group_id = get_group_id(al2_id, group["name"])
             al_group_id = get_group_id(al_id, group["name"])
