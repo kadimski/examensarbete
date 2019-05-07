@@ -7,18 +7,17 @@ These Canvas LMS tools were created for a bachelor thesis associated with Profes
 
 This script is only a helper script to create the required group sets in order to get <b>grade_discussing_users.rb</b>, <b>group_users_to_AL.rb</b> and <b>s-announce-presentation.rb</b> working properly for testing and demonstration.
 
-
 <h3>example_config.json</h3>
 
-This is an example config.json file for use with the scripts.
+This is an example config.json file for use with the scripts against a Canvas domain.
 
 <h3>grade_discussing_users.rb</h3>
 
-This script grades each participant in a discussion with the grade <i>pass</i>, otherwise <i>fail</i>. This script is thought to be used in a cron job.
+This script grades each participant in a discussion within a group with the grade <i>pass</i>, otherwise <i>fail</i>. This script is thought to be used in a cron job.
 
 <h3>group_users_to_AL.rb</h3>
 
-This script groups users from two different group sets to a single one.
+This script groups users from two different group sets to a single one. This scripts is thought to be used in a cron job.
 
 <h3>prototype_1.rb</h3>
 
