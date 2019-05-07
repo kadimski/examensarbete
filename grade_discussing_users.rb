@@ -62,7 +62,7 @@ end
 def get_group_set_id(group_set_name)
     group_set_arr = Array.new
 
-    @url = "http://#{$canvas_host}/api/v1/courses/#{$canvas_course_id}/group_categories"
+    @url = "http://#{$canvas_host}/api/v1/courses/#{$canvas_course_id}/group_categories?per_page=1"
     puts "@url is #{@url}"
     
     @getResponse = HTTParty.get(@url, :headers => $header)
@@ -83,7 +83,7 @@ def get_group_set_id(group_set_name)
 
         group_set_arr.each { |group_set_data|
             group_set_data.each do |group_set_info|
-                if group_set_info["name"] == group_name
+                if group_set_info["name"] == group_set_name
                     return group_set_id = group_set_info["id"]  
                 end
             end
@@ -176,7 +176,7 @@ def get_discussing_users(group_id)
     puts "@url is #{@url}"
 
     @getResponse = HTTParty.get(@url, :headers => $header)
-    puts(" GET to get discussing users in group has Response.code #{@getResponse.code} and getResponse is #{@getResponse}")
+    puts(" GET to get discussion topic in group has Response.code #{@getResponse.code} and getResponse is #{@getResponse}")
 
     discussion_data = @getResponse.parsed_response
     discussion_id = nil
