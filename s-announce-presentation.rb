@@ -36,6 +36,10 @@ access_token = config['canvas']['access_token']
 host = config['canvas']['host']
 puts "host: #{host}"
 
+# canvas course id
+$canvas_course_id = config['canvas']['course_id']
+puts "canvas_course_id: #{$canvas_course_id}"
+
 # a global variable to help the hostname
 $canvas_host=host
 
@@ -46,9 +50,6 @@ disable :protection
 # enable sessions so we can remember the launch info between http requests, as
 # the user takes the assessment
 enable :sessions
-
-# canvas course id
-$canvas_course_id = 5
 
 $eecs_meeting_rooms=[
 'csc_lv24_522 Fantum, Lindstedtsvägen 24',
@@ -626,6 +627,7 @@ res = n.start do |http|
   
 end
 
+#### Creates a group with a given name in a given group set ####
 def create_group(group_set_id, group_name)
   @url = "http://#{$canvas_host}/api/v1/group_categories/#{group_set_id}/groups"
   puts "@url is #{@url}"
@@ -637,80 +639,95 @@ def create_group(group_set_id, group_name)
   puts(" POST to create a group has Response.code #{@postResponse.code} and postResponse is #{@postResponse}")
 end
 
+#### Returns the group set id for a given group set ####
 def get_group_set_id(group_set_name)
+  group_set_arr = Array.new
+
   @url = "http://#{$canvas_host}/api/v1/courses/#{$canvas_course_id}/group_categories"
   puts "@url is #{@url}"
   
   @getResponse = HTTParty.get(@url, :headers => $header)
   puts(" GET to get group sets has Response.code #{@getResponse.code} and getResponse is #{@getResponse}")
+  
+  if $link_parser.parse(@getResponse).by_rel('next')
+      group_set_arr.append(@getResponse.parsed_response)
 
-  group_set_data = @getResponse.parsed_response
-  group_set_id = nil 
+      while $link_parser.parse(@getResponse).by_rel('next')
+          @url = $link_parser.parse(@getResponse).by_rel('next').target
+          puts "@url is #{@url}"
 
-  group_set_data.each do |group_set_info|
-      if group_set_info["name"] == group_set_name
-          group_set_id = group_set_info["id"]  
+          @getResponse = HTTParty.get(@url, :headers => $header)
+          puts(" GET to get group sets has Response.code #{@getResponse.code} and getResponse is #{@getResponse}")
+          
+          group_set_arr.append(@getResponse.parsed_response)
       end
-  end
 
-  return group_set_id
+      group_set_arr.each { |group_set_data|
+          group_set_data.each do |group_set_info|
+              if group_set_info["name"] == group_set_name
+                  return group_set_id = group_set_info["id"]  
+              end
+          end
+      }
+  else
+      group_set_data = @getResponse.parsed_response
+      group_set_id = nil 
+  
+      group_set_data.each do |group_set_info|
+          if group_set_info["name"] == group_set_name
+              group_set_id = group_set_info["id"]  
+          end
+      end
+  
+      return group_set_id
+  end
 end
 
+#### Returns the group id for a given group name in a group set ####
 def get_group_id(group_set_id, group_name)
+  group_data_arr = Array.new
+
   @url = "http://#{$canvas_host}/api/v1/group_categories/#{group_set_id}/groups"
   puts "@url is #{@url}"
 
   @getResponse = HTTParty.get(@url, :headers => $header)
-  puts(" GET to get groups has Response.code #{@getResponse.code} and getResponse is #{@getResponse}")
+  puts(" GET to get groups in a group set has Response.code #{@getResponse.code} and getResponse is #{@getResponse}")
+  
+  if $link_parser.parse(@getResponse).by_rel('next')
+      group_data_arr.append(@getResponse.parsed_response)
 
-  group_data = @getResponse.parsed_response
-  group_id = nil
+      while $link_parser.parse(@getResponse).by_rel('next')
+          @url = $link_parser.parse(@getResponse).by_rel('next').target
+          puts "@url is #{@url}"
 
-  group_data.each do |group_data_info|
-      if group_data_info["name"] == group_name
-          group_id = group_data_info["id"]  
+          @getResponse = HTTParty.get(@url, :headers => $header)
+          puts(" GET to get groups in a group set has Response.code #{@getResponse.code} and getResponse is #{@getResponse}")
+          
+          group_data_arr.append(@getResponse.parsed_response)
       end
+
+      group_data_arr.each { |group_data|
+          group_data.each do |group_data_info|
+              if group_data_info["name"] == group_name
+                  return group_id = group_data_info["id"]  
+              end
+          end
+      }
+  else
+      group_data = @getResponse.parsed_response
+      group_id = nil
+  
+      group_data.each do |group_data_info|
+          if group_data_info["name"] == group_name
+              group_id = group_data_info["id"]  
+          end
+      end
+
+      return group_id
   end
-
-  return group_id
 end
 
-def move_users_to_group(group_id, arr_of_user_ids)
-  arr_of_user_ids.each { |id|
-    @url = "http://#{$canvas_host}/api/v1/groups/#{group_id}/memberships"
-    puts "@url is #{@url}"
-
-    @payload={'user_id': id}
-    puts("@payload is #{@payload}")
-
-    @postResponse = HTTParty.post(@url, :body => @payload.to_json, :headers => $header )
-    puts(" POST to move users to group has Response.code #{@postResponse.code} and postResponse is #{@postResponse}")
-  }
-end
-
-def get_arr_of_user_ids(arr_of_user_names)
-  arr_of_user_ids = Array.new
-
-  arr_of_user_names.each { |name|
-    @url = "http://#{$canvas_host}/api/v1/courses/#{$canvas_course_id}/users"
-    puts "@url is #{@url}"
-
-    @payload={'search_term': name}
-    puts("@payload is #{@payload}")
-
-    @getResponse = HTTParty.get(@url, :body => @payload.to_json, :headers => $header)
-    puts(" GET to get user has Response.code #{@getResponse.code} and getResponse is #{@getResponse}")
-
-    user_data = @getResponse.parsed_response
-    
-    user_data.each do |user_data_info|
-      arr_of_user_ids.push user_data_info["id"]
-    end
-  }
-
-  return arr_of_user_ids
-end
-
+#### Creates a discussion topic in a given group ####
 def create_discussion_topic(group_id)
   @url = "http://#{$canvas_host}/api/v1/groups/#{group_id}/discussion_topics"
   puts "@url is #{@url}"
@@ -1209,7 +1226,7 @@ get "/prepareAnnouncementStep2" do
   @getResponse=HTTParty.get(@url_to_use, :headers => $header )
   author_info=@getResponse.parsed_response
   puts("author_info is #{author_info}")
-  authors=["Quentin FakeStudent"]
+  authors=[]
   authors << author_info['name']
   session['authors']=authors
 
