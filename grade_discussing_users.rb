@@ -13,14 +13,15 @@ access_token = config['canvas']['access_token']
 host = config['canvas']['host']
 puts "host: #{host}"
 
+# canvas course id
+$canvas_course_id = config['canvas']['course_id']
+puts "canvas_course_id: #{$canvas_course_id}"
+
 # a global variable to help the hostname
 $canvas_host=host
 
 $header = {'Authorization': 'Bearer ' "#{access_token}", 'Content-Type': 'application/json', 'Accept': 'application/json'}
 puts "$header: #{$header}"
-
-# canvas course id
-$canvas_course_id = 5
 
 # today's date and time
 $todays_date = Date.today.to_s
@@ -36,7 +37,7 @@ $link_parser = Nitlink::Parser.new
 def get_groups_in_group_set(group_set_id)
     group_set_data = Array.new
 
-    @url = "http://#{$canvas_host}/api/v1/group_categories/#{group_set_id}/groups?per_page=1"
+    @url = "http://#{$canvas_host}/api/v1/group_categories/#{group_set_id}/groups"
     puts "@url is #{@url}"
         
     @getResponse = HTTParty.get(@url, :headers => $header)
@@ -52,7 +53,12 @@ def get_groups_in_group_set(group_set_id)
             
         group_set_data.append(@getResponse.parsed_response)
     end
-  
+    
+    if @getResponse.empty?
+        puts "No groups found in group set, program will stop executing"
+        abort
+    end
+
     return group_set_data
 end
 
@@ -62,7 +68,7 @@ end
 def get_group_set_id(group_set_name)
     group_set_arr = Array.new
 
-    @url = "http://#{$canvas_host}/api/v1/courses/#{$canvas_course_id}/group_categories?per_page=1"
+    @url = "http://#{$canvas_host}/api/v1/courses/#{$canvas_course_id}/group_categories"
     puts "@url is #{@url}"
     
     @getResponse = HTTParty.get(@url, :headers => $header)
@@ -108,7 +114,7 @@ end
 def get_group_id(group_set_id, group_name)
     group_data_arr = Array.new
 
-    @url = "http://#{$canvas_host}/api/v1/group_categories/#{group_set_id}/groups?per_page=1"
+    @url = "http://#{$canvas_host}/api/v1/group_categories/#{group_set_id}/groups"
     puts "@url is #{@url}"
   
     @getResponse = HTTParty.get(@url, :headers => $header)
@@ -164,6 +170,11 @@ def get_users_in_group(group_id)
     user_data.each do |user_data_info|
         arr_of_user_ids.push user_data_info["id"]
     end 
+
+    if @getResponse.empty?
+        puts "No users in group from Active listener group 1 or Active listener group 2, program will not continue executing."
+        abort
+    end
 
     return arr_of_user_ids
 end
