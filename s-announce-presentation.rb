@@ -742,6 +742,117 @@ def create_discussion_topic(group_id)
   puts(" POST to create discussion topic has Response.code #{@postResponse.code} and postResponse is #{@postResponse}")
 end
 
+#### Creates group set with a given name and self signup option ####
+def create_group_set(name, self_signup)
+  @url = "http://#{$canvas_host}/api/v1/courses/#{$canvas_course_id}/group_categories"
+  puts "@url is #{@url}"
+
+  if self_signup == true
+      @payload={'name': name, 
+                'self_signup': 'enabled'}
+      puts("@payload is #{@payload}")
+
+      @postResponse = HTTParty.post(@url, :body => @payload.to_json, :headers => $header )
+      puts(" POST to create group set has Response.code #{@postResponse.code} and postResponse is #{@postResponse}")  
+  else   
+      @payload={'name': name}
+      puts("@payload is #{@payload}")
+
+      @postResponse = HTTParty.post(@url, :body => @payload.to_json, :headers => $header )
+      puts(" POST to create group set has Response.code #{@postResponse.code} and postResponse is #{@postResponse}")
+  end
+end
+
+########################################## 
+
+#### Creates an assignment with a given name ####
+def create_assignment(name)
+  @url = "http://#{$canvas_host}/api/v1/courses/#{$canvas_course_id}/assignments"
+  puts "@url is #{@url}"
+
+  @payload={'assignment': { 
+                              'name': name,
+                              'points_possible': '0',
+                              'grading_type': 'pass_fail',
+                              'published': 'true',
+                              'submission_types': [ "none" ]
+                          }
+  }
+
+  @postResponse = HTTParty.post(@url, :body => @payload.to_json, :headers => $header )
+  puts(" POST to create assignment has Response.code #{@postResponse.code} and postResponse is #{@postRepsone}")
+end
+
+##########################################
+
+#### Checks if a given group set exists ####
+def check_if_group_set_exists(group_set_name)
+  group_set_arr = Array.new
+
+  @url = "http://#{$canvas_host}/api/v1/courses/#{$canvas_course_id}/group_categories"
+  puts "@url is #{@url}"
+  
+  @getResponse = HTTParty.get(@url, :headers => $header)
+  puts(" GET to get group sets has Response.code #{@getResponse.code} and getResponse is #{@getResponse}")
+  
+  if $link_parser.parse(@getResponse).by_rel('next')
+      group_set_arr.append(@getResponse.parsed_response)
+
+      while $link_parser.parse(@getResponse).by_rel('next')
+          @url = $link_parser.parse(@getResponse).by_rel('next').target
+          puts "@url is #{@url}"
+
+          @getResponse = HTTParty.get(@url, :headers => $header)
+          puts(" GET to get group sets has Response.code #{@getResponse.code} and getResponse is #{@getResponse}")
+          
+          group_set_arr.append(@getResponse.parsed_response)
+      end
+
+      group_set_arr.each { |group_set_data|
+          group_set_data.each do |group_set_info|
+              if group_set_info["name"] == group_set_name
+                  return true  
+              end
+          end
+      }
+
+      return false
+  else
+      group_set_data = @getResponse.parsed_response
+  
+      group_set_data.each do |group_set_info|
+          if group_set_info["name"] == group_set_name
+              return true  
+          end
+      end
+  
+      return false
+  end
+end
+
+##########################################
+
+#### Checks if an assignment exists ####
+def check_if_assignment_exists(name)
+  @url = "http://#{$canvas_host}/api/v1/courses/#{$canvas_course_id}/assignments"
+  puts "@url is #{@url}"
+
+  @getResponse = HTTParty.get(@url, :headers => $header)
+  puts(" GET to get assignments in course has Response.code #{@getResponse.code} and getResponse is #{@getResponse}")
+
+  assignments_data = @getResponse.parsed_response
+
+  assignments_data.each do |assignments_info|
+      if assignments_info["name"] == name
+          return true
+      end
+  end
+
+  return false
+end
+
+##########################################
+
 ##### start of routes
 
 post '/start' do
@@ -1239,17 +1350,51 @@ get "/prepareAnnouncementStep2" do
   group_name_complete = $group_name_not_complete + authors.join(" | ")
 
   # creation of groups
-  group_set_id_AL1 = get_group_set_id("Active listener group 1")
-  group_set_id_AL2 = get_group_set_id("Active listener group 2")
-  group_set_id_AL = get_group_set_id("Active listener group")
+  group_set_id_AL1 = nil
+  group_set_id_AL2 = nil
+  group_set_id_AL = nil
+
+  if check_if_group_set_exists("Active listener group 1")
+      group_set_id_AL1 = get_group_set_id("Active listener group 1")
+  else
+      create_group_set("Active listener group 1", true)
+      group_set_id_AL1 = get_group_set_id("Active listener group 1")
+  end
+
+  if check_if_group_set_exists("Active listener group 2")
+      group_set_id_AL2 = get_group_set_id("Active listener group 2")
+  else
+      create_group_set("Active listener group 2", true)
+      group_set_id_AL2 = get_group_set_id("Active listener group 2")
+  end
+
+  if check_if_group_set_exists("Active listener group")
+      group_set_id_AL = get_group_set_id("Active listener group")
+  else
+      create_group_set("Active listener group", false)
+      group_set_id_AL = get_group_set_id("Active listener group")
+  end
   
   create_group(group_set_id_AL1, group_name_complete)
   create_group(group_set_id_AL2, group_name_complete)
   create_group(group_set_id_AL, group_name_complete)
 
-  # createion of discussion topic in AL
+  # creation of discussion topic in AL
   group_id_AL = get_group_id(group_set_id_AL, group_name_complete)
   create_discussion_topic(group_id_AL)
+
+  # creation of assignments
+  if check_if_assignment_exists("1: aktiv lyssnare / active listener")
+      puts "1: aktiv lyssnare / active listener exists"
+  else
+      create_assignment("1: aktiv lyssnare / active listener")
+  end
+
+  if check_if_assignment_exists("2: aktiv lyssnare / active listener")
+      puts "2: aktiv lyssnare / active listener exists"
+  else
+      create_assignment("2: aktiv lyssnare / active listener")
+  end
 
   # extract title, subtitle, abstracts and list of keywords
   # "attachments":[{"id":18,"uuid":"8hghdLuepnAjrxDd7dtFjU8KLjzqoFTtcSfuxQxw","folder_id":20,"display_name":"Fake_student_thesis-20190220.pdf","filename":"1550670816_107__Fake_student_thesis-20190220.pdf","workflow_state":"processed","content-type":"application/pdf","url":"http://canvas.docker/files/18/download?download_frd=1\u0026verifier=8hghdLuepnAjrxDd7dtFjU8KLjzqoFTtcSfuxQxw","size":265203,"created_at":"2019-02-20T13:53:35Z","updated_at":"2019-02-20T13:53:37Z","unlock_at":null,"locked":false,"hidden":false,"lock_at":null,"hidden_for_user":false,"thumbnail_url":null,"modified_at":"2019-02-20T13:53:35Z","mime_class":"pdf","media_entry_id":null,"locked_for_user":false,"preview_url":null}]
