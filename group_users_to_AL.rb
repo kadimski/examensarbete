@@ -3,6 +3,7 @@ require 'json'
 require 'time'
 require 'date'
 require 'nitlink'
+require 'set'
 
 config = JSON.parse(File.read('/home/maguire/utils/config.json'))
 #puts "config: #{config}"
@@ -23,12 +24,19 @@ $canvas_host=host
 $header = {'Authorization': 'Bearer ' "#{access_token}", 'Content-Type': 'application/json', 'Accept': 'application/json'}
 puts "$header: #{$header}"
 
-# today's date and time
+# today's date and current time
 $todays_date = Date.today.to_s
 $time = Time.new.strftime("%k:%M")
-time_in_thirty_minutes = Time.now + 60*30
+
+# current time in fifteen minutes
+time_in_fifteen_minutes = Time.now + 60*15
 # ugly solution
-$time_in_thirty_minutes = time_in_thirty_minutes.strftime("%k:%M")
+$time_in_fifteen_minutes = time_in_fifteen_minutes.strftime("%k:%M")
+
+# current time fifteen minutes ago
+time_fifteen_minutes_ago = Time.now - 60*15
+# ugly solution
+$time_fifteen_minutes_ago = time_fifteen_minutes_ago.strftime("%k:%M")
  
 # link parser for paginated get requests
 $link_parser = Nitlink::Parser.new
@@ -55,8 +63,7 @@ def get_groups_in_group_set(group_set_id)
     end
 
     if @getResponse.empty?
-        puts "No groups found in group set, program will stop executing"
-        abort
+        puts "WARNING: No groups found in group set, program may not function correctly!"
     end
 
     return group_set_data
@@ -156,7 +163,7 @@ end
 
 ##########################################
 
-#### Returns an array of user ids from a given group ####
+#### Returns a set of user ids from a given group ####
 def get_users_in_group(group_id)
     @url = "http://#{$canvas_host}/api/v1/groups/#{group_id}/users"
     puts "@url is #{@url}"
@@ -165,25 +172,24 @@ def get_users_in_group(group_id)
     puts(" GET to get users in group has Response.code #{@getResponse.code} and getResponse is #{@getResponse}")
 
     user_data = @getResponse.parsed_response
-    arr_of_user_ids = Array.new
+    set_of_user_ids = Set.new
 
     user_data.each do |user_data_info|
-        arr_of_user_ids.push user_data_info["id"]
+        set_of_user_ids.add user_data_info["id"]
     end 
 
     if @getResponse.empty?
-        puts "No users in group from Active listener group 1 or Active listener group 2, program will not continue executing."
-        abort
+        puts "WARNING: No users in group from Active listener group 1 or Active listener group 2, program may not function correctly!"
     end
 
-    return arr_of_user_ids
+    return set_of_user_ids
 end
 
 ##########################################
 
-#### Move an array of users to a given group ####
-def move_users_to_group(group_id, arr_of_user_ids)
-    arr_of_user_ids.each { |id|
+#### Move a set of users to a given group ####
+def move_users_to_group(group_id, set_of_user_ids)
+    set_of_user_ids.each do |id|
       @url = "http://#{$canvas_host}/api/v1/groups/#{group_id}/memberships"
       puts "@url is #{@url}"
   
@@ -192,14 +198,14 @@ def move_users_to_group(group_id, arr_of_user_ids)
   
       @postResponse = HTTParty.post(@url, :body => @payload.to_json, :headers => $header )
       puts(" POST to move user to group has Response.code #{@postResponse.code} and postResponse is #{@postResponse}")
-    }
+    end
 end
 
 ##########################################
 
-#### Returns an array of user ids ####
-def get_arr_of_user_ids(arr_of_user_names)
-    arr_of_user_ids = Array.new
+#### Returns a set of user ids ####
+def get_set_of_user_ids(arr_of_user_names)
+    set_of_user_ids = Set.new
 
     arr_of_user_names.each { |name|
       @url = "http://#{$canvas_host}/api/v1/courses/#{$canvas_course_id}/users"
@@ -214,11 +220,11 @@ def get_arr_of_user_ids(arr_of_user_names)
       user_data = @getResponse.parsed_response
       
       user_data.each do |user_data_info|
-        arr_of_user_ids.push user_data_info["id"]
+        set_of_user_ids.add user_data_info["id"]
       end
     }
   
-    return arr_of_user_ids
+    return set_of_user_ids
 end
 
 ##########################################
@@ -244,6 +250,33 @@ def get_user_id(full_user_name)
     end
 
     return user_id
+end
+
+##########################################
+
+#### Returns the members count for a single group ####
+def get_group_members_count(id)
+    @url = "http://#{$canvas_host}/api/v1/groups/#{id}"
+    puts "@url is #{@url}"
+
+    @getResponse = HTTParty.get(@url, :headers => $header)
+    puts(" GET to get group has Response.code #{@getResponse.code} and getResponse is #{@getResponse}")
+    
+    group_data = @getResponse.parsed_response
+    members_count = group_data["members_count"]
+
+    return members_count
+end
+
+##########################################
+
+#### Remove a single user from a group ####
+def remove_user_from_group(user_id, group_id)
+    @url = "http://#{$canvas_host}/api/v1/groups/#{group_id}/users/#{user_id}"
+    puts "@url is #{@url}"
+
+    @deleteResponse = HTTParty.delete(@url, :headers => $header)
+    puts(" DELETE to remove user from group has Response.code #{@deleteResponse.code} and getResponse is #{@deleteResponse}")
 end
 
 ##########################################
@@ -274,24 +307,69 @@ groups.each { |group_info|
         end
         group_time = Time.parse(group_time_string).strftime("%k:%M")
         
-        if $todays_date == group_date && group_time.between?($time, $time_in_thirty_minutes)
+        if $todays_date == group_date && group_time.between?($time, $time_in_fifteen_minutes) 
             al1_group_id = get_group_id(al1_id, group["name"])
             al2_group_id = get_group_id(al2_id, group["name"])
             al_group_id = get_group_id(al_id, group["name"])
             
-            arr_of_user_ids_AL1 = get_users_in_group(al1_group_id)
-            arr_of_user_ids_AL2 = get_users_in_group(al2_group_id)
+            set_of_user_ids_AL1 = get_users_in_group(al1_group_id)
+            set_of_user_ids_AL2 = get_users_in_group(al2_group_id)
 
-            arr_of_user_ids = arr_of_user_ids_AL1 + arr_of_user_ids_AL2
+            set_of_user_ids = set_of_user_ids_AL1.merge set_of_user_ids_AL2
             
             if author2 == nil
-                arr_of_user_ids.append(get_user_id(author1))
+                set_of_user_ids.add(get_user_id(author1))
             else
-                arr_of_user_ids.append(get_user_id(author1)) 
-                arr_of_user_ids.append(get_user_id(author2))
+                set_of_user_ids.add(get_user_id(author1)) 
+                set_of_user_ids.add(get_user_id(author2))
             end
 
-            move_users_to_group(al_group_id, arr_of_user_ids)
-        end
+            move_users_to_group(al_group_id, set_of_user_ids)
+        elsif $todays_date == group_date && group_time.between?($time_fifteen_minutes_ago, $time)
+            al1_group_id = get_group_id(al1_id, group["name"])
+            al2_group_id = get_group_id(al2_id, group["name"])
+            al_group_id = get_group_id(al_id, group["name"])
+
+            members_count_al1 = get_group_members_count(al1_group_id)
+            members_count_al2 = get_group_members_count(al2_group_id)
+
+            if splitted_group_name.length == 3
+                members_count_al = get_group_members_count(al_group_id) - 1
+            else
+                members_count_al = get_group_members_count(al_group_id) - 2
+            end
+
+            if members_count_al1 + members_count_al2 > members_count_al
+                set_of_user_ids_AL1 = get_users_in_group(al1_group_id)
+                set_of_user_ids_AL2 = get_users_in_group(al2_group_id)
+
+                set_of_user_ids_AL1.each do |user_id|
+                    if set_of_user_ids_AL2.include?(user_id)
+                        remove_user_from_group(user_id, al2_group_id)
+                        members_count_al2 = members_count_al2 - 1
+                    end
+                end
+
+                if members_count_al1 + members_count_al2 > members_count_al
+                    set_of_user_ids_AL2 = get_users_in_group(al2_group_id)
+                    set_of_user_ids_AL = get_users_in_group(al_group_id)
+                    set_of_late_user_ids = Set.new
+
+                    set_of_user_ids_AL1.each do |user_id|
+                        if !set_of_user_ids_AL.include?(user_id)
+                            set_of_late_user_ids.add(user_id)
+                        end
+                    end
+                    
+                    set_of_user_ids_AL2.each do |user_id|
+                        if !set_of_user_ids_AL.include?(user_id)
+                            set_of_late_user_ids.add(user_id)
+                        end
+                    end
+
+                    move_users_to_group(al_group_id, set_of_late_user_ids)
+                end    
+            end 
+        end             
     end
 }
