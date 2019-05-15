@@ -55,8 +55,7 @@ def get_groups_in_group_set(group_set_id)
     end
     
     if @getResponse.empty?
-        puts "No groups found in group set, program will stop executing"
-        abort
+        puts "WARNING: No groups found in group set, program may not function correctly!"
     end
 
     return group_set_data
@@ -172,8 +171,7 @@ def get_users_in_group(group_id)
     end 
 
     if @getResponse.empty?
-        puts "No users in group from Active listener group 1 or Active listener group 2, program will not continue executing."
-        abort
+        puts "WARNING: No users in group from Active listener group 1 or Active listener group 2, program may not function correctly!"
     end
 
     return arr_of_user_ids
@@ -214,9 +212,27 @@ end
 
 ##########################################
 
+#### Checks if a student has been graded on an assignment ####
+def has_student_been_graded(assignment_id, user_id)
+    @url = "http://#{$canvas_host}/api/v1/courses/#{$canvas_course_id}/assignments/#{assignment_id}/submissions/#{user_id}"
+    puts "@url is #{@url}"
+
+    @getResponse = HTTParty.get(@url, :headers => $header)
+    puts(" GET to get submission for user has Response.code #{@getResponse.code} and getResponse is #{@getResponse}")
+
+    assignment_data = @getResponse.parsed_response
+
+    if assignment_data["grade"] == nil
+        return false
+    end
+
+    return true
+end
+
+##########################################
+
 #### Grades students who have participated in the discussion and fails those who have not ####
 def grade_users(arr_of_discussing_user_ids, arr_of_user_ids_AL1, arr_of_user_ids_AL2)
-    
     @url = "http://#{$canvas_host}/api/v1/courses/#{$canvas_course_id}/assignments"
     puts "@url is #{@url}"
 
@@ -235,8 +251,8 @@ def grade_users(arr_of_discussing_user_ids, arr_of_user_ids_AL1, arr_of_user_ids
         end
     end
 
-	arr_of_user_ids_AL1.each { |id|
-		if arr_of_discussing_user_ids.include?(id)
+    arr_of_user_ids_AL1.each { |id|
+		if arr_of_discussing_user_ids.include?(id) && !has_student_been_graded(assignment_AL1_id, id)
 			@url = "http://#{$canvas_host}/api/v1/courses/#{$canvas_course_id}/assignments/#{assignment_AL1_id}/submissions/#{id}"
             puts "@url is #{@url}"
 
@@ -247,7 +263,7 @@ def grade_users(arr_of_discussing_user_ids, arr_of_user_ids_AL1, arr_of_user_ids
 
             @putResponse = HTTParty.put(@url, :body => @payload.to_json, :headers => $header )
             puts(" PUT to grade assignment for user has Response.code #{@putResponse.code} and postResponse is #{@putResponse}")
-		else
+		elsif !arr_of_discussing_user_ids.include?(id) && !has_student_been_graded(assignment_AL1_id, id)
 			@url = "http://#{$canvas_host}/api/v1/courses/#{$canvas_course_id}/assignments/#{assignment_AL1_id}/submissions/#{id}"
             puts "@url is #{@url}"
 
@@ -262,7 +278,7 @@ def grade_users(arr_of_discussing_user_ids, arr_of_user_ids_AL1, arr_of_user_ids
 	}
 	
 	arr_of_user_ids_AL2.each { |id|
-		if arr_of_discussing_user_ids.include?(id)
+		if arr_of_discussing_user_ids.include?(id) && !has_student_been_graded(assignment_AL2_id, id)
 			@url = "http://#{$canvas_host}/api/v1/courses/#{$canvas_course_id}/assignments/#{assignment_AL2_id}/submissions/#{id}"
             puts "@url is #{@url}"
 
@@ -273,7 +289,7 @@ def grade_users(arr_of_discussing_user_ids, arr_of_user_ids_AL1, arr_of_user_ids
 
             @putResponse = HTTParty.put(@url, :body => @payload.to_json, :headers => $header )
             puts(" PUT to grade assignment for user has Response.code #{@putResponse.code} and postResponse is #{@putResponse}")
-		else
+		elsif !arr_of_discussing_user_ids.include?(id) && !has_student_been_graded(assignment_AL2_id, id)
 			@url = "http://#{$canvas_host}/api/v1/courses/#{$canvas_course_id}/assignments/#{assignment_AL2_id}/submissions/#{id}"
             puts "@url is #{@url}"
 
